@@ -63,14 +63,43 @@
 
     // 2. Dummy SME Data with Tiers (Simulating PROMETHEE II output)
     const smes = [
+      // --- خوشه‌ی مرکزی اولو و حومه (Oulu Region) ---
       { name: "Oulu Fab Oy", lat: 65.0121, lon: 25.4651, tier: 1, cap: 5000, workers: 120, lead: 15 },
       { name: "Pohjoinen Steel", lat: 65.0500, lon: 25.4000, tier: 2, cap: 2500, workers: 45, lead: 30 },
       { name: "Oulu Tech Solutions", lat: 64.95, lon: 25.55, tier: 2, cap: 1500, workers: 30, lead: 25 },
+      { name: "Oulu Green Logistics", lat: 65.0210, lon: 25.4750, tier: 1, cap: 4000, workers: 80, lead: 14 },
+      { name: "Kempele Industrial Oy", lat: 64.9120, lon: 25.5030, tier: 2, cap: 2200, workers: 45, lead: 25 },
+      { name: "Haukipudas Assembly", lat: 65.1760, lon: 25.3520, tier: 3, cap: 800, workers: 15, lead: 40 },
+      { name: "Oulunsalo Tech", lat: 64.9350, lon: 25.4050, tier: 1, cap: 3500, workers: 90, lead: 18 },
+      { name: "Rusko Machine Works", lat: 65.0510, lon: 25.4950, tier: 2, cap: 2800, workers: 55, lead: 21 },
+      { name: "Liminka Metal", lat: 64.8100, lon: 25.4100, tier: 3, cap: 1200, workers: 25, lead: 35 },
+
+      // --- خوشه‌ی نیوالا، یلی‌ویسکا و جنوب اوستروبوتنیا (Nivala/Ylivieska) ---
       { name: "Nivala WindTech", lat: 63.9292, lon: 24.9616, tier: 1, cap: 8000, workers: 200, lead: 12 },
       { name: "Nivala Subcontracting", lat: 63.9500, lon: 24.9000, tier: 3, cap: 1000, workers: 20, lead: 45 },
+      { name: "Ylivieska Cables Oy", lat: 64.0720, lon: 24.5340, tier: 1, cap: 5500, workers: 110, lead: 16 },
+      { name: "Nivala Precision Parts", lat: 63.9210, lon: 24.9750, tier: 2, cap: 1900, workers: 35, lead: 28 },
+      { name: "Sievi Fabrication", lat: 63.9050, lon: 24.5150, tier: 3, cap: 900, workers: 18, lead: 42 },
+      { name: "Haapajärvi Motors", lat: 63.7480, lon: 25.3160, tier: 2, cap: 2100, workers: 40, lead: 26 },
+
+      // --- خوشه‌ی ساحلی راهه (Raahe Region) ---
       { name: "Raahe Heavy Industries", lat: 64.6833, lon: 24.4833, tier: 1, cap: 10000, workers: 350, lead: 20 },
-      { name: "Kalajoki Welders", lat: 64.26, lon: 23.95, tier: 2, cap: 3500, workers: 60, lead: 22 },
-      { name: "Kemi Green Works", lat: 65.7333, lon: 24.5667, tier: 3, cap: 2000, workers: 35, lead: 40 }
+      { name: "Raahe Steel Prep", lat: 64.6720, lon: 24.4920, tier: 1, cap: 6000, workers: 150, lead: 12 },
+      { name: "Pyhäjoki Site Services", lat: 64.4650, lon: 24.2580, tier: 2, cap: 1700, workers: 30, lead: 24 },
+      { name: "Saloinen Welders", lat: 64.6500, lon: 24.4200, tier: 2, cap: 2400, workers: 45, lead: 20 },
+
+      // --- خوشه‌ی شمالی کِمی و تورنیو (Kemi/Tornio) ---
+      { name: "Kemi Green Works", lat: 65.7333, lon: 24.5667, tier: 3, cap: 2000, workers: 35, lead: 40 },
+      { name: "Tornio Hubs", lat: 65.8480, lon: 24.1440, tier: 1, cap: 7500, workers: 180, lead: 15 },
+      { name: "Kemi Port Logistics", lat: 65.7230, lon: 24.5550, tier: 2, cap: 3200, workers: 65, lead: 22 },
+      { name: "Simonkylä Assemblies", lat: 65.6640, lon: 25.0480, tier: 3, cap: 1100, workers: 22, lead: 38 },
+
+      // --- خوشه‌ی کالاایوکی و کوکولا (Kalajoki/Kokkola) ---
+      { name: "Kalajoki Welders", lat: 64.2600, lon: 23.9500, tier: 2, cap: 3500, workers: 60, lead: 22 },
+      { name: "Kokkola Eco-Tech", lat: 63.8380, lon: 23.1300, tier: 1, cap: 4800, workers: 100, lead: 17 },
+      { name: "Kannus Timbers", lat: 63.9020, lon: 23.9150, tier: 3, cap: 1400, workers: 28, lead: 30 },
+      { name: "Kalajoki Marine Services", lat: 64.2700, lon: 23.9400, tier: 2, cap: 2600, workers: 50, lead: 25 },
+      { name: "Lohtaja Components", lat: 64.0250, lon: 23.5040, tier: 2, cap: 1800, workers: 32, lead: 27 }
     ];
 
     // Colors mapping for Readiness Tiers
