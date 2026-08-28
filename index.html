@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARVO Project: SDSS Capacity Aggregator</title>
+  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+  
+  <style>
+    body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; height: 100vh; background-color: #f4f4f9;}
+    #map { flex: 3; height: 100%; border-right: 2px solid #ccc;}
+    #sidebar { flex: 1; background: #2c3e50; color: white; padding: 25px; box-sizing: border-box; display: flex; flex-direction: column; overflow-y: auto; }
+    h2 { color: #1abc9c; border-bottom: 2px solid #34495e; padding-bottom: 10px; margin-top: 0; font-size: 1.4rem;}
+    p.desc { font-size: 0.9rem; color: #bdc3c7; line-height: 1.5; margin-bottom: 20px;}
+    .stat-box { background: #34495e; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-left: 4px solid #1abc9c; }
+    .stat-label { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: #bdc3c7;}
+    .stat-value { font-size: 28px; font-weight: bold; color: #f1c40f; margin-top: 5px; }
+    .legend { background: white; padding: 12px; line-height: 1.8em; border-radius: 6px; color: #333; box-shadow: 0 0 15px rgba(0,0,0,0.2); }
+    .legend i { width: 18px; height: 18px; float: left; margin-right: 8px; border-radius: 50%; opacity: 0.9;}
+  </style>
+</head>
+<body>
+
+  <div id="map"></div>
+
+  <div id="sidebar">
+    <h2>Spatial Capacity Aggregator</h2>
+    <p class="desc">1. Use the drawing tools on the map (polygon, square, or circle).<br>2. Draw an area around the regional SMEs.<br>3. Watch the system aggregate capacities instantly.</p>
+    
+    <div class="stat-box">
+      <div class="stat-label">SMEs in Selected Area</div>
+      <div class="stat-value" id="sme-count">0</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Aggregated Capacity (Units/Yr)</div>
+      <div class="stat-value" id="total-capacity">0</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Total Local Workforce</div>
+      <div class="stat-value" id="total-workforce">0</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Avg. Lead Time (Days)</div>
+      <div class="stat-value" id="avg-lead-time">0</div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+  
+  <script>
+    // 1. Initialize Map (Centered between Oulu and Nivala)
+    const map = L.map('map').setView([64.5, 25.0], 7);
+    
+    // Light minimalist basemap
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(map);
+
+    // 2. Dummy SME Data with Tiers (Simulating PROMETHEE II output)
+    const smes = [
+      { name: "Oulu Fab Oy", lat: 65.0121, lon: 25.4651, tier: 1, cap: 5000, workers: 120, lead: 15 },
+      { name: "Pohjoinen Steel", lat: 65.0500, lon: 25.4000, tier: 2, cap: 2500, workers: 45, lead: 30 },
+      { name: "Oulu Tech Solutions", lat: 64.95, lon: 25.55, tier: 2, cap: 1500, workers: 30, lead: 25 },
+      { name: "Nivala WindTech", lat: 63.9292, lon: 24.9616, tier: 1, cap: 8000, workers: 200, lead: 12 },
+      { name: "Nivala Subcontracting", lat: 63.9500, lon: 24.9000, tier: 3, cap: 1000, workers: 20, lead: 45 },
+      { name: "Raahe Heavy Industries", lat: 64.6833, lon: 24.4833, tier: 1, cap: 10000, workers: 350, lead: 20 },
+      { name: "Kalajoki Welders", lat: 64.26, lon: 23.95, tier: 2, cap: 3500, workers: 60, lead: 22 },
+      { name: "Kemi Green Works", lat: 65.7333, lon: 24.5667, tier: 3, cap: 2000, workers: 35, lead: 40 }
+    ];
+
+    // Colors mapping for Readiness Tiers
+    const tierColors = {
+      1: '#2ecc71', // Green (Tier 1: Ready)
+      2: '#f39c12', // Yellow/Orange (Tier 2: Needs intervention)
+      3: '#e74c3c'  // Red (Tier 3: Not ready)
+    };
+
+    const geojsonFeatures = [];
+
+    // 3. Add Colored Markers to Map
+    smes.forEach(sme => {
+      const color = tierColors[sme.tier];
+      const marker = L.circleMarker([sme.lat, sme.lon], {
+        radius: 9, fillColor: color, color: '#2c3e50', weight: 2, opacity: 1, fillOpacity: 0.9
+      }).addTo(map);
+      
+      // Popup info
+      marker.bindPopup(`<b>${sme.name}</b><hr style="margin:5px 0;"><b>Readiness Tier:</b> ${sme.tier}<br><b>Capacity:</b> ${sme.cap} units<br><b>Workforce:</b> ${sme.workers}<br><b>Lead Time:</b> ${sme.lead} days`);
+      
+      // Convert point for Turf.js spatial analysis
+      geojsonFeatures.push(turf.point([sme.lon, sme.lat], sme));
+    });
+
+    const smePoints = turf.featureCollection(geojsonFeatures);
+
+    // 4. Drawing Controls (Leaflet Draw)
+    const drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+    
+    const drawControl = new L.Control.Draw({
+      draw: {
+        polyline: false, marker: false, circlemarker: false,
+        polygon: { shapeOptions: { color: '#3498db' } },
+        rectangle: { shapeOptions: { color: '#3498db' } },
+        circle: { shapeOptions: { color: '#3498db' } }
+      },
+      edit: { featureGroup: drawnItems }
+    });
+    map.addControl(drawControl);
+
+    // 5. Spatial Aggregation Logic
+    function aggregateData(layer) {
+      let selectedPoints = [];
+      let geoJSON = layer.toGeoJSON();
+      
+      if (layer instanceof L.Circle) {
+        // Handle Circle spatial join
+        const center = turf.point([layer.getLatLng().lng, layer.getLatLng().lat]);
+        const radiusKm = layer.getRadius() / 1000;
+        turf.featureEach(smePoints, function (currentFeature) {
+          const distance = turf.distance(center, currentFeature, {units: 'kilometers'});
+          if (distance <= radiusKm) selectedPoints.push(currentFeature.properties);
+        });
+      } else {
+        // Handle Polygon/Rectangle spatial join
+        const ptsWithin = turf.pointsWithinPolygon(smePoints, geoJSON);
+        ptsWithin.features.forEach(f => selectedPoints.push(f.properties));
+      }
+
+      // 6. Update Dashboard
+      if (selectedPoints.length === 0) {
+        resetDashboard();
+        return;
+      }
+
+      let totalCap = 0, totalWork = 0, totalLead = 0;
+      selectedPoints.forEach(p => {
+        totalCap += p.cap;
+        totalWork += p.workers;
+        totalLead += p.lead;
+      });
+
+      document.getElementById('sme-count').innerText = selectedPoints.length;
+      document.getElementById('total-capacity').innerText = totalCap.toLocaleString();
+      document.getElementById('total-workforce').innerText = totalWork.toLocaleString();
+      document.getElementById('avg-lead-time').innerText = (totalLead / selectedPoints.length).toFixed(1);
+    }
+
+    function resetDashboard() {
+      document.getElementById('sme-count').innerText = "0";
+      document.getElementById('total-capacity').innerText = "0";
+      document.getElementById('total-workforce').innerText = "0";
+      document.getElementById('avg-lead-time').innerText = "0";
+    }
+
+    // 7. Map Events
+    map.on(L.Draw.Event.CREATED, function (e) {
+      drawnItems.clearLayers(); // Keep only one shape on map for simplicity
+      const layer = e.layer;
+      drawnItems.addLayer(layer);
+      aggregateData(layer);
+    });
+    
+    map.on(L.Draw.Event.EDITED, function (e) {
+      drawnItems.eachLayer(function (layer) { aggregateData(layer); });
+    });
+    
+    map.on(L.Draw.Event.DELETED, function (e) {
+      resetDashboard();
+    });
+
+    // 8. Map Legend (Readiness Tiers)
+    const legend = L.control({position: 'bottomright'});
+    legend.onAdd = function (map) {
+      const div = L.DomUtil.create('div', 'legend');
+      div.innerHTML += '<b>Readiness Score (PROMETHEE II)</b><br>';
+      div.innerHTML += '<i style="background: #2ecc71"></i> Tier 1 (Highly Capable)<br>';
+      div.innerHTML += '<i style="background: #f39c12"></i> Tier 2 (Needs Intervention)<br>';
+      div.innerHTML += '<i style="background: #e74c3c"></i> Tier 3 (Structural Barriers)<br>';
+      return div;
+    };
+    legend.addTo(map);
+
+  </script>
+</body>
+</html>
