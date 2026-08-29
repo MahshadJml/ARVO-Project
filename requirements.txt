@@ -7,3 +7,4 @@ geopandas
 pandas
 numpy
 scipy
+scikit-learn
