@@ -25,14 +25,15 @@ with st.sidebar:
     st.markdown("**Model Info:**")
     st.caption("This tool uses real road-network routing (OSMnx) and NetworkX optimization to allocate regional SMEs dynamically.")
 
-# --- بارگذاری شبکه جاده‌ای اولو (با قابلیت کَش برای سرعت بالا) ---
+# --- بارگذاری شبکه جاده‌ای اولو بر اساس شعاع نقطه‌ای (بسیار سریع و بهینه) ---
 @st.cache_resource
 def load_road_network():
-    # دانلود گراف جاده‌ای منطقه اولو از OpenStreetMap
-    G = ox.graph_from_place("Oulu, Finland", network_type='drive')
+    # مختصات مرکز اولو با شعاع ۱۵ کیلومتر (برای جلوگیری از سنگین شدن و گیر کردن)
+    center_coords = (65.0121, 25.4651)
+    G = ox.graph_from_point(center_coords, dist=15000, network_type='drive')
     return G
 
-with st.spinner("Loading Oulu road network graph from OpenStreetMap... Please wait."):
+with st.spinner("Loading Oulu road network graph... Please wait."):
     G = load_road_network()
 
 # --- دیتای فرضی شرکت‌های منطقه (SMEs) ---
