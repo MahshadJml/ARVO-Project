@@ -42,7 +42,7 @@ with st.spinner("Loading Oulu road network graph... Please wait."):
 
 # --- دیتای غنی‌شده و متراکم شرکت‌های منطقه اولو (SMEs) ---
 smes = [
-    {"name": "Oulu Fab Oy", "coords": (65.0121, 25.4651), "tier": 1, "capacity": 5000},
+    {"name": "Oulu Fab Oy", "coords": (65.0121, 25.4651), "tier": 3, "capacity": 5000},
     {"name": "Pohjoinen Steel", "coords": (65.0500, 25.4000), "tier": 2, "capacity": 2500},
     {"name": "Kempele Industrial", "coords": (64.9120, 25.5030), "tier": 2, "capacity": 4000},
     {"name": "Haukipudas Assembly", "coords": (65.1760, 25.3520), "tier": 3, "capacity": 6000},
@@ -57,7 +57,7 @@ smes = [
     {"name": "Herukka Fabrication", "coords": (65.0950, 25.3900), "tier": 2, "capacity": 3300},
     {"name": "Maikkula Engineering", "coords": (64.9900, 25.5400), "tier": 1, "capacity": 3800},
     {"name": "Oritkari Cargo Services", "coords": (64.9850, 25.4400), "tier": 2, "capacity": 4100},
-    {"name": "Intiö Precision Parts", "coords": (65.0200, 25.4850), "tier": 1, "capacity": 2900},
+    {"name": "Intiö Precision Parts", "coords": (65.0200, 25.4850), "tier": 3, "capacity": 2900},
     {"name": "Kiiminki Mechanical", "coords": (65.1300, 25.7200), "tier": 2, "capacity": 3800}
 ]
 
