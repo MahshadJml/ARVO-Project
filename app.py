@@ -10,7 +10,7 @@ st.set_page_config(layout="wide", page_title="ARVO SDSS - Location Allocation")
 st.title("ARVO: Spatial Decision-Support System (SDSS)")
 st.markdown("### Dynamic Supply Chain Localization & Capacity Aggregation")
 
-# --- مدیریت حافظه موقت (Session State) برای جلوگیری از ریست شدن ---
+# --- مدیریت حافظه موقت (Session State) ---
 if 'ran_allocation' not in st.session_state:
     st.session_state.ran_allocation = False
     st.session_state.allocated_smes = []
@@ -22,7 +22,7 @@ with st.sidebar:
     st.header("Allocation Parameters")
     st.write("Set the required volume for the green mega-project in Oulu region.")
     
-    demand = st.number_input("EPC DEMAND (UNITS/YR)", value=12000, step=1000, min_value=1000)
+    demand = st.number_input("EPC DEMAND (UNITS/YR)", value=25000, step=5000, min_value=1000)
     
     run_btn = st.button("RUN ALLOCATION ENGINE", type="primary")
     
@@ -34,25 +34,36 @@ with st.sidebar:
 @st.cache_resource
 def load_road_network():
     center_coords = (65.0121, 25.4651)
-    G = ox.graph_from_point(center_coords, dist=15000, network_type='drive')
+    G = ox.graph_from_point(center_coords, dist=18000, network_type='drive')
     return G
 
 with st.spinner("Loading Oulu road network graph... Please wait."):
     G = load_road_network()
 
-# --- دیتای فرضی شرکت‌های منطقه (SMEs) ---
+# --- دیتای غنی‌شده و متراکم شرکت‌های منطقه اولو (SMEs) ---
 smes = [
     {"name": "Oulu Fab Oy", "coords": (65.0121, 25.4651), "tier": 1, "capacity": 5000},
     {"name": "Pohjoinen Steel", "coords": (65.0500, 25.4000), "tier": 2, "capacity": 2500},
     {"name": "Kempele Industrial", "coords": (64.9120, 25.5030), "tier": 2, "capacity": 4000},
     {"name": "Haukipudas Assembly", "coords": (65.1760, 25.3520), "tier": 3, "capacity": 6000},
     {"name": "Oulunsalo Tech", "coords": (64.9350, 25.4050), "tier": 1, "capacity": 3500},
-    {"name": "Rusko Machine Works", "coords": (65.0510, 25.4950), "tier": 2, "capacity": 2800}
+    {"name": "Rusko Machine Works", "coords": (65.0510, 25.4950), "tier": 2, "capacity": 2800},
+    # شرکت‌های جدید اضافه شده در اطراف اولو:
+    {"name": "Linnanmaa Tech Hub", "coords": (65.0550, 25.4680), "tier": 1, "capacity": 4200},
+    {"name": "Toppila Industrial", "coords": (65.0350, 25.4350), "tier": 2, "capacity": 3100},
+    {"name": "Kaakkuri Components", "coords": (64.9750, 25.5100), "tier": 1, "capacity": 4500},
+    {"name": "Oulu Port Logistics", "coords": (65.0250, 25.4150), "tier": 1, "capacity": 6000},
+    {"name": "Pateniemi Steel Works", "coords": (65.0800, 25.4100), "tier": 3, "capacity": 2500},
+    {"name": "Herukka Fabrication", "coords": (65.0950, 25.3900), "tier": 2, "capacity": 3300},
+    {"name": "Maikkula Engineering", "coords": (64.9900, 25.5400), "tier": 1, "capacity": 3800},
+    {"name": "Oritkari Cargo Services", "coords": (64.9850, 25.4400), "tier": 2, "capacity": 4100},
+    {"name": "Intiö Precision Parts", "coords": (65.0200, 25.4850), "tier": 1, "capacity": 2900},
+    {"name": "Kiiminki Mechanical", "coords": (65.1300, 25.7200), "tier": 2, "capacity": 3800}
 ]
 
 mega_project_coords = (65.0210, 25.4750)
 
-# اگر کاربر دکمه را زد، محاسبات انجام شده و در حافظه سشن ذخیره می‌شود
+# اگر کاربر دکمه را زد
 if run_btn:
     st.session_state.ran_allocation = True
     demand_node = ox.distance.nearest_nodes(G, X=mega_project_coords[1], Y=mega_project_coords[0])
@@ -93,7 +104,7 @@ with col1:
         icon=folium.Icon(color='red', icon='industry', prefix='fa')
     ).add_to(m)
 
-    # اگر محاسبات قبلاً انجام شده باشد، مسیرها و خطوط روی نقشه رسم می‌شوند
+    # رسم مسیرهای جاده‌ای شرکت‌های انتخاب‌شده
     if st.session_state.ran_allocation:
         demand_node = ox.distance.nearest_nodes(G, X=mega_project_coords[1], Y=mega_project_coords[0])
         for sme in st.session_state.allocated_smes:
@@ -101,7 +112,7 @@ with col1:
             route_coords = [(G.nodes[node]['y'], G.nodes[node]['x']) for node in route]
             folium.PolyLine(route_coords, color="blue", weight=4, opacity=0.7).add_to(m)
 
-    # نمایش پین شرکت‌ها
+    # نمایش پین تمام شرکت‌ها روی نقشه بر اساس Tier
     tier_colors = {1: 'green', 2: 'orange', 3: 'red'}
     for sme in smes:
         color = tier_colors.get(sme['tier'], 'blue')
@@ -118,7 +129,7 @@ with col1:
     st_folium(m, width=900, height=650)
 
 with col2:
-    st.markdown("### Dashboard Metrics")
+    st.markdown("### Metrics")
     
     contracted_count = len(st.session_state.allocated_smes) if st.session_state.ran_allocation else 0
     display_cap = st.session_state.total_capacity if st.session_state.ran_allocation else 0
