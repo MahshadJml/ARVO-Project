@@ -70,6 +70,10 @@ if run_btn:
     
     processed_smes = []
     for sme in smes:
+        # --- فیلتر کردن شرکت‌های سطح 3 (موانع ساختاریافته / قرمز) ---
+        if sme['tier'] == 3:
+            continue  # این شرکت‌ها کلاً از دایره انتخاب EPC خارج می‌شوند
+            
         sme_node = ox.distance.nearest_nodes(G, X=sme["coords"][1], Y=sme["coords"][0])
         road_dist = nx.shortest_path_length(G, sme_node, demand_node, weight='length') / 1000.0
         processed_smes.append({**sme, 'road_dist': road_dist, 'node': sme_node})
