@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARVO: Location-Allocation Model</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body { margin: 0; font-family: 'Segoe UI', Tahoma, sans-serif; display: flex; height: 100vh; background-color: #ecf0f1;}
+    #map { flex: 3; height: 100%; }
+    #sidebar { flex: 1; background: #2c3e50; color: white; padding: 25px; display: flex; flex-direction: column; overflow-y: auto; }
+    h2 { color: #f39c12; border-bottom: 2px solid #34495e; padding-bottom: 10px; margin-top: 0; font-size: 1.3rem;}
+    p.desc { font-size: 0.85rem; color: #bdc3c7; line-height: 1.5; margin-bottom: 15px;}
+    .input-group { margin-bottom: 20px; }
+    label { font-size: 0.85rem; color: #bdc3c7; display: block; margin-bottom: 5px; text-transform: uppercase;}
+    input[type="number"] { width: 100%; padding: 10px; border: none; border-radius: 4px; font-size: 1rem; box-sizing: border-box; }
+    button { background: #e67e22; color: white; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; text-transform: uppercase; margin-bottom: 20px;}
+    button:hover { background: #d35400; }
+    .stat-box { background: #34495e; padding: 12px; margin-bottom: 10px; border-radius: 6px; border-left: 4px solid #e67e22; }
+    .stat-label { font-size: 0.75rem; text-transform: uppercase; color: #bdc3c7;}
+    .stat-value { font-size: 22px; font-weight: bold; color: #f1c40f; margin-top: 3px; }
+    .note { font-size: 0.75rem; color: #7f8c8d; margin-top: auto; padding-top: 20px;}
+  </style>
+</head>
+<body>
+
+  <div id="map"></div>
+
+  <div id="sidebar">
+    <h2>Dynamic Supply Allocation</h2>
+    <p class="desc">Drag the red Mega-Project marker to a location. Set the required volume, and the algorithm will optimally allocate the closest Tier 1 & 2 SMEs to fulfill the demand.</p>
+    
+    <div class="input-group">
+      <label>EPC Demand (Units/Yr)</label>
+      <input type="number" id="demand-input" value="15000" step="1000">
+    </div>
+    
+    <button onclick="runAllocation()">Run Allocation Engine</button>
+    
+    <div class="stat-box">
+      <div class="stat-label">SMEs Contracted</div>
+      <div class="stat-value" id="sme-count">0</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Total Allocated Capacity</div>
+      <div class="stat-value" id="total-capacity">0</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Max Transport Distance (km)</div>
+      <div class="stat-value" id="max-distance">0</div>
+    </div>
+
+    <div class="note">Note: For this prototype, Euclidian distance is used. The production ARVO SDSS will utilize road-network routing algorithms (OSRM).</div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+  
+  <script>
+    const map = L.map('map').setView([64.5, 25.0], 7);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // SMEs Data
+    const smes = [
+      { name: "Oulu Fab Oy", lat: 65.0121, lon: 25.4651, tier: 1, cap: 5000 },
+      { name: "Pohjoinen Steel", lat: 65.0500, lon: 25.4000, tier: 2, cap: 2500 },
+      { name: "Oulu Tech Solutions", lat: 64.95, lon: 25.55, tier: 2, cap: 1500 },
+      { name: "Oulu Green Logistics", lat: 65.0210, lon: 25.4750, tier: 1, cap: 4000 },
+      { name: "Kempele Industrial Oy", lat: 64.9120, lon: 25.5030, tier: 2, cap: 2200 },
+      { name: "Oulunsalo Tech", lat: 64.9350, lon: 25.4050, tier: 1, cap: 3500 },
+      { name: "Rusko Machine Works", lat: 65.0510, lon: 25.4950, tier: 2, cap: 2800 },
+      { name: "Nivala WindTech", lat: 63.9292, lon: 24.9616, tier: 1, cap: 8000 },
+      { name: "Ylivieska Cables Oy", lat: 64.0720, lon: 24.5340, tier: 1, cap: 5500 },
+      { name: "Nivala Precision Parts", lat: 63.9210, lon: 24.9750, tier: 2, cap: 1900 },
+      { name: "Haapajärvi Motors", lat: 63.7480, lon: 25.3160, tier: 2, cap: 2100 },
+      { name: "Raahe Heavy Industries", lat: 64.6833, lon: 24.4833, tier: 1, cap: 10000 },
+      { name: "Raahe Steel Prep", lat: 64.6720, lon: 24.4920, tier: 1, cap: 6000 },
+      { name: "Pyhäjoki Site Services", lat: 64.4650, lon: 24.2580, tier: 2, cap: 1700 },
+      { name: "Tornio Hubs", lat: 65.8480, lon: 24.1440, tier: 1, cap: 7500 },
+      { name: "Kokkola Eco-Tech", lat: 63.8380, lon: 23.1300, tier: 1, cap: 4800 }
+    ];
+
+    const tierColors = { 1: '#2ecc71', 2: '#f39c12' };
+    
+    // Add SMEs to Map
+    smes.forEach(sme => {
+      L.circleMarker([sme.lat, sme.lon], {
+        radius: 7, fillColor: tierColors[sme.tier], color: '#2c3e50', weight: 1, opacity: 1, fillOpacity: 0.9
+      }).addTo(map).bindPopup(`<b>${sme.name}</b><br>Capacity: ${sme.cap}`);
+    });
+
+    // Mega-Project Marker (Draggable)
+    const projectIcon = L.divIcon({
+      className: 'custom-div-icon',
+      html: "<div style='background-color:#c0392b;width:20px;height:20px;border-radius:50%;border:3px solid white;box-shadow:0 0 10px rgba(0,0,0,0.5);'></div>",
+      iconSize: [26, 26], iconAnchor: [13, 13]
+    });
+    
+    const megaProjectMarker = L.marker([64.4650, 24.2580], {icon: projectIcon, draggable: true})
+      .addTo(map)
+      .bindPopup("<b>Mega-Project Site</b><br>Drag me to simulate demand location.")
+      .openPopup();
+
+    let connectionLines = [];
+
+    function runAllocation() {
+      // Clear previous lines
+      connectionLines.forEach(line => map.removeLayer(line));
+      connectionLines = [];
+
+      const targetDemand = parseInt(document.getElementById('demand-input').value);
+      const projPos = megaProjectMarker.getLatLng();
+      const projPoint = turf.point([projPos.lng, projPos.lat]);
+
+      // Calculate distance for all SMEs and sort
+      let availableSMEs = smes.map(sme => {
+        const smePoint = turf.point([sme.lon, sme.lat]);
+        const distance = turf.distance(projPoint, smePoint, {units: 'kilometers'});
+        return { ...sme, distance };
+      });
+      
+      availableSMEs.sort((a, b) => a.distance - b.distance);
+
+      let currentCapacity = 0;
+      let allocatedSMEs = [];
+      let maxDist = 0;
+
+      // Greedy Allocation Logic
+      for (let sme of availableSMEs) {
+        if (currentCapacity >= targetDemand) break;
+        currentCapacity += sme.cap;
+        allocatedSMEs.push(sme);
+        if (sme.distance > maxDist) maxDist = sme.distance;
+
+        // Draw line on map
+        const line = L.polyline([projPos, [sme.lat, sme.lon]], {
+          color: '#3498db', weight: 3, dashArray: '5, 5', opacity: 0.8
+        }).addTo(map);
+        connectionLines.push(line);
+      }
+
+      // Update Dashboard
+      document.getElementById('sme-count').innerText = allocatedSMEs.length;
+      document.getElementById('total-capacity').innerText = currentCapacity.toLocaleString();
+      document.getElementById('max-distance').innerText = maxDist.toFixed(1);
+    }
+  </script>
+</body>
+</html>
