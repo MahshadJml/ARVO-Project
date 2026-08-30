@@ -11,7 +11,12 @@
     #sidebar { flex: 1; background: #2c3e50; color: white; padding: 25px; display: flex; flex-direction: column; overflow-y: auto; }
     h2 { color: #f39c12; border-bottom: 2px solid #34495e; padding-bottom: 10px; margin-top: 0; font-size: 1.3rem;}
     p.desc { font-size: 0.85rem; color: #bdc3c7; line-height: 1.5; margin-bottom: 15px;}
-    .input-group { margin-bottom: 20px; }
+    
+    .form-group { margin-bottom: 15px; border-left: 4px solid #f1c40f; padding-left: 10px; }
+    select { width: 100%; padding: 10px; background: #34495e; color: white; border: 1px solid #f39c12; border-radius: 4px; font-size: 0.9rem; outline: none; cursor: pointer; margin-top: 5px;}
+    select:focus { border-color: #2ecc71; }
+
+    .input-group { margin-bottom: 15px; }
     label { font-size: 0.85rem; color: #bdc3c7; display: block; margin-bottom: 5px; text-transform: uppercase;}
     input[type="number"] { width: 100%; padding: 10px; border: none; border-radius: 4px; font-size: 1rem; box-sizing: border-box; }
     button { background: #e67e22; color: white; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; text-transform: uppercase; margin-bottom: 20px;}
@@ -19,7 +24,10 @@
     .stat-box { background: #34495e; padding: 12px; margin-bottom: 10px; border-radius: 6px; border-left: 4px solid #e67e22; }
     .stat-label { font-size: 0.75rem; text-transform: uppercase; color: #bdc3c7;}
     .stat-value { font-size: 22px; font-weight: bold; color: #f1c40f; margin-top: 3px; }
-    .note { font-size: 0.75rem; color: #7f8c8d; margin-top: auto; padding-top: 20px;}
+    
+    /* استایل راهنمای رنگ‌بندی روی نقشه */
+    .legend { background: white; padding: 12px; line-height: 1.8em; border-radius: 6px; color: #333; box-shadow: 0 0 15px rgba(0,0,0,0.2); font-size: 0.85rem;}
+    .legend i { width: 16px; height: 16px; float: left; margin-right: 8px; border-radius: 50%; opacity: 0.9;}
   </style>
 </head>
 <body>
@@ -28,8 +36,20 @@
 
   <div id="sidebar">
     <h2>Dynamic Supply Allocation</h2>
-    <p class="desc">Drag the red Mega-Project marker to a location. Set the required volume, and the algorithm will optimally allocate the closest Tier 1 & 2 SMEs to fulfill the demand.</p>
+    <p class="desc">Drag the Mega-Project marker to a location. Set the required volume, and the algorithm will optimally allocate the closest Tier 1 & 2 SMEs to fulfill the demand.</p>
     
+    <!-- منوی کشویی انتخاب خدمت -->
+    <div class="form-group">
+      <label>EPC Required Service / Material</label>
+      <select id="service-type">
+        <option value="all">All Services (Aggregated Overview)</option>
+        <option value="metal">Heavy Metal Fabrication & Welding</option>
+        <option value="electrical">Electrical & Hydrogen Components</option>
+        <option value="logistics">Industrial Logistics & Transport</option>
+        <option value="maintenance">Site Maintenance & Civil Works</option>
+      </select>
+    </div>
+
     <div class="input-group">
       <label>EPC Demand (Units/Yr)</label>
       <input type="number" id="demand-input" value="15000" step="1000">
@@ -49,8 +69,6 @@
       <div class="stat-label">Max Transport Distance (km)</div>
       <div class="stat-value" id="max-distance">0</div>
     </div>
-
-    <div class="note">Note: For this prototype, Euclidian distance is used. The production ARVO SDSS will utilize road-network routing algorithms (OSRM).</div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -63,40 +81,48 @@
       maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // SMEs Data
+    // SMEs Data (شامل Tier 1, 2 و 3 با پراکندگی بیشتر در منطقه)
     const smes = [
       { name: "Oulu Fab Oy", lat: 65.0121, lon: 25.4651, tier: 1, cap: 5000 },
       { name: "Pohjoinen Steel", lat: 65.0500, lon: 25.4000, tier: 2, cap: 2500 },
       { name: "Oulu Tech Solutions", lat: 64.95, lon: 25.55, tier: 2, cap: 1500 },
       { name: "Oulu Green Logistics", lat: 65.0210, lon: 25.4750, tier: 1, cap: 4000 },
       { name: "Kempele Industrial Oy", lat: 64.9120, lon: 25.5030, tier: 2, cap: 2200 },
+      { name: "Haukipudas Assembly", lat: 65.1760, lon: 25.3520, tier: 3, cap: 800 },
       { name: "Oulunsalo Tech", lat: 64.9350, lon: 25.4050, tier: 1, cap: 3500 },
       { name: "Rusko Machine Works", lat: 65.0510, lon: 25.4950, tier: 2, cap: 2800 },
+      { name: "Liminka Metal", lat: 64.8100, lon: 25.4100, tier: 3, cap: 1200 },
       { name: "Nivala WindTech", lat: 63.9292, lon: 24.9616, tier: 1, cap: 8000 },
+      { name: "Nivala Subcontracting", lat: 63.9500, lon: 24.9000, tier: 3, cap: 1000 },
       { name: "Ylivieska Cables Oy", lat: 64.0720, lon: 24.5340, tier: 1, cap: 5500 },
       { name: "Nivala Precision Parts", lat: 63.9210, lon: 24.9750, tier: 2, cap: 1900 },
+      { name: "Sievi Fabrication", lat: 63.9050, lon: 24.5150, tier: 3, cap: 900 },
       { name: "Haapajärvi Motors", lat: 63.7480, lon: 25.3160, tier: 2, cap: 2100 },
       { name: "Raahe Heavy Industries", lat: 64.6833, lon: 24.4833, tier: 1, cap: 10000 },
       { name: "Raahe Steel Prep", lat: 64.6720, lon: 24.4920, tier: 1, cap: 6000 },
       { name: "Pyhäjoki Site Services", lat: 64.4650, lon: 24.2580, tier: 2, cap: 1700 },
+      { name: "Saloinen Welders", lat: 64.6500, lon: 24.4200, tier: 3, cap: 1400 },
+      { name: "Kemi Green Works", lat: 65.7333, lon: 24.5667, tier: 3, cap: 2000 },
       { name: "Tornio Hubs", lat: 65.8480, lon: 24.1440, tier: 1, cap: 7500 },
-      { name: "Kokkola Eco-Tech", lat: 63.8380, lon: 23.1300, tier: 1, cap: 4800 }
+      { name: "Kokkola Eco-Tech", lat: 63.8380, lon: 23.1300, tier: 1, cap: 4800 },
+      { name: "Kalajoki Marine", lat: 64.2700, lon: 23.9400, tier: 2, cap: 2600 }
     ];
 
-    const tierColors = { 1: '#2ecc71', 2: '#f39c12' };
+    // رنگ‌بندی بر اساس تایرها (شامل قرمز برای Tier 3)
+    const tierColors = { 1: '#2ecc71', 2: '#f39c12', 3: '#e74c3c' };
     
-    // Add SMEs to Map
+    // اضافه کردن شرکت‌ها به نقشه
     smes.forEach(sme => {
       L.circleMarker([sme.lat, sme.lon], {
-        radius: 7, fillColor: tierColors[sme.tier], color: '#2c3e50', weight: 1, opacity: 1, fillOpacity: 0.9
-      }).addTo(map).bindPopup(`<b>${sme.name}</b><br>Capacity: ${sme.cap}`);
+        radius: 8, fillColor: tierColors[sme.tier], color: '#2c3e50', weight: 1.5, opacity: 1, fillOpacity: 0.9
+      }).addTo(map).bindPopup(`<b>${sme.name}</b><br>Tier: ${sme.tier}<br>Capacity: ${sme.cap}`);
     });
 
-    // Mega-Project Marker (Draggable)
+    // طراحی متمایز برای مگاپروژه (آیکون صنعتی شیک با رنگ تیره و حاشیه متمایز)
     const projectIcon = L.divIcon({
       className: 'custom-div-icon',
-      html: "<div style='background-color:#c0392b;width:20px;height:20px;border-radius:50%;border:3px solid white;box-shadow:0 0 10px rgba(0,0,0,0.5);'></div>",
-      iconSize: [26, 26], iconAnchor: [13, 13]
+      html: "<div style='background-color:#2c3e50;width:24px;height:24px;border-radius:50%;border:3px solid #e74c3c;box-shadow:0 0 12px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;'><div style='width:8px;height:8px;background-color:#e74c3c;border-radius:50%;'></div></div>",
+      iconSize: [30, 30], iconAnchor: [15, 15]
     });
     
     const megaProjectMarker = L.marker([64.4650, 24.2580], {icon: projectIcon, draggable: true})
@@ -107,7 +133,6 @@
     let connectionLines = [];
 
     function runAllocation() {
-      // Clear previous lines
       connectionLines.forEach(line => map.removeLayer(line));
       connectionLines = [];
 
@@ -115,8 +140,8 @@
       const projPos = megaProjectMarker.getLatLng();
       const projPoint = turf.point([projPos.lng, projPos.lat]);
 
-      // Calculate distance for all SMEs and sort
-      let availableSMEs = smes.map(sme => {
+      // فیلتر کردن و محاسبه فاصله برای Tier 1 و Tier 2 (چون Tier 3 موانع ساختاری دارد و انتخاب نمی‌شود)
+      let availableSMEs = smes.filter(sme => sme.tier !== 3).map(sme => {
         const smePoint = turf.point([sme.lon, sme.lat]);
         const distance = turf.distance(projPoint, smePoint, {units: 'kilometers'});
         return { ...sme, distance };
@@ -128,25 +153,34 @@
       let allocatedSMEs = [];
       let maxDist = 0;
 
-      // Greedy Allocation Logic
       for (let sme of availableSMEs) {
         if (currentCapacity >= targetDemand) break;
         currentCapacity += sme.cap;
         allocatedSMEs.push(sme);
         if (sme.distance > maxDist) maxDist = sme.distance;
 
-        // Draw line on map
         const line = L.polyline([projPos, [sme.lat, sme.lon]], {
           color: '#3498db', weight: 3, dashArray: '5, 5', opacity: 0.8
         }).addTo(map);
         connectionLines.push(line);
       }
 
-      // Update Dashboard
       document.getElementById('sme-count').innerText = allocatedSMEs.length;
       document.getElementById('total-capacity').innerText = currentCapacity.toLocaleString();
       document.getElementById('max-distance').innerText = maxDist.toFixed(1);
     }
+
+    // اضافه کردن راهنمای رنگ‌بندی (Legend) به گوشه نقشه
+    const legend = L.control({position: 'bottomright'});
+    legend.onAdd = function (map) {
+      const div = L.DomUtil.create('div', 'legend');
+      div.innerHTML += '<b>Readiness Score</b><br>';
+      div.innerHTML += '<i style="background: #2ecc71"></i> Tier 1 (Highly Capable)<br>';
+      div.innerHTML += '<i style="background: #f39c12"></i> Tier 2 (Needs Intervention)<br>';
+      div.innerHTML += '<i style="background: #e74c3c"></i> Tier 3 (Structural Barriers)<br>';
+      return div;
+    };
+    legend.addTo(map);
   </script>
 </body>
 </html>
