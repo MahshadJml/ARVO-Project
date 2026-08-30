@@ -14,6 +14,12 @@
     #sidebar { flex: 1; background: #2c3e50; color: white; padding: 25px; box-sizing: border-box; display: flex; flex-direction: column; overflow-y: auto; }
     h2 { color: #1abc9c; border-bottom: 2px solid #34495e; padding-bottom: 10px; margin-top: 0; font-size: 1.4rem;}
     p.desc { font-size: 0.9rem; color: #bdc3c7; line-height: 1.5; margin-bottom: 20px;}
+    
+    /* استایل‌های مربوط به منوی کشویی */
+    .form-group { margin-bottom: 20px; border-left: 4px solid #f1c40f; padding-left: 10px; }
+    select { width: 100%; padding: 12px; margin-top: 8px; background: #34495e; color: white; border: 1px solid #1abc9c; border-radius: 4px; font-size: 0.95rem; outline: none; cursor: pointer; }
+    select:focus { border-color: #f1c40f; }
+
     .stat-box { background: #34495e; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-left: 4px solid #1abc9c; }
     .stat-label { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: #bdc3c7;}
     .stat-value { font-size: 28px; font-weight: bold; color: #f1c40f; margin-top: 5px; }
@@ -27,8 +33,20 @@
 
   <div id="sidebar">
     <h2>Spatial Capacity Aggregator</h2>
-    <p class="desc">1. Use the drawing tools on the map (polygon, square, or circle).<br>2. Draw an area around the regional SMEs.<br>3. Watch the system aggregate capacities instantly.</p>
+    <p class="desc">1. Select the required EPC service/material.<br>2. Use the circle tool on the map to draw a radius.<br>3. Watch the system aggregate local capacities instantly.</p>
     
+    <!-- اضافه شدن منوی کشویی برای انتخاب نوع خدمات/محصولات -->
+    <div class="form-group">
+      <div class="stat-label">EPC Required Service/Material</div>
+      <select id="service-type">
+        <option value="all">All Services (Aggregated Overview)</option>
+        <option value="metal">Heavy Metal Fabrication & Welding</option>
+        <option value="electrical">Electrical Components & Assembly</option>
+        <option value="logistics">Industrial Logistics & Transport</option>
+        <option value="maintenance">Site Maintenance & Civil Works</option>
+      </select>
+    </div>
+
     <div class="stat-box">
       <div class="stat-label">SMEs in Selected Area</div>
       <div class="stat-value" id="sme-count">0</div>
@@ -61,9 +79,9 @@
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // 2. Dummy SME Data with Tiers (Simulating PROMETHEE II output)
+    // 2. Dummy SME Data with Tiers
     const smes = [
-      // --- خوشه‌ی مرکزی اولو و حومه (Oulu Region) ---
+      // Oulu Region
       { name: "Oulu Fab Oy", lat: 65.0121, lon: 25.4651, tier: 1, cap: 5000, workers: 120, lead: 15 },
       { name: "Pohjoinen Steel", lat: 65.0500, lon: 25.4000, tier: 2, cap: 2500, workers: 45, lead: 30 },
       { name: "Oulu Tech Solutions", lat: 64.95, lon: 25.55, tier: 2, cap: 1500, workers: 30, lead: 25 },
@@ -74,7 +92,7 @@
       { name: "Rusko Machine Works", lat: 65.0510, lon: 25.4950, tier: 2, cap: 2800, workers: 55, lead: 21 },
       { name: "Liminka Metal", lat: 64.8100, lon: 25.4100, tier: 3, cap: 1200, workers: 25, lead: 35 },
 
-      // --- خوشه‌ی نیوالا، یلی‌ویسکا و جنوب اوستروبوتنیا (Nivala/Ylivieska) ---
+      // Nivala/Ylivieska
       { name: "Nivala WindTech", lat: 63.9292, lon: 24.9616, tier: 1, cap: 8000, workers: 200, lead: 12 },
       { name: "Nivala Subcontracting", lat: 63.9500, lon: 24.9000, tier: 3, cap: 1000, workers: 20, lead: 45 },
       { name: "Ylivieska Cables Oy", lat: 64.0720, lon: 24.5340, tier: 1, cap: 5500, workers: 110, lead: 16 },
@@ -82,19 +100,19 @@
       { name: "Sievi Fabrication", lat: 63.9050, lon: 24.5150, tier: 3, cap: 900, workers: 18, lead: 42 },
       { name: "Haapajärvi Motors", lat: 63.7480, lon: 25.3160, tier: 2, cap: 2100, workers: 40, lead: 26 },
 
-      // --- خوشه‌ی ساحلی راهه (Raahe Region) ---
+      // Raahe Region
       { name: "Raahe Heavy Industries", lat: 64.6833, lon: 24.4833, tier: 1, cap: 10000, workers: 350, lead: 20 },
       { name: "Raahe Steel Prep", lat: 64.6720, lon: 24.4920, tier: 1, cap: 6000, workers: 150, lead: 12 },
       { name: "Pyhäjoki Site Services", lat: 64.4650, lon: 24.2580, tier: 2, cap: 1700, workers: 30, lead: 24 },
       { name: "Saloinen Welders", lat: 64.6500, lon: 24.4200, tier: 2, cap: 2400, workers: 45, lead: 20 },
 
-      // --- خوشه‌ی شمالی کِمی و تورنیو (Kemi/Tornio) ---
+      // Kemi/Tornio
       { name: "Kemi Green Works", lat: 65.7333, lon: 24.5667, tier: 3, cap: 2000, workers: 35, lead: 40 },
       { name: "Tornio Hubs", lat: 65.8480, lon: 24.1440, tier: 1, cap: 7500, workers: 180, lead: 15 },
       { name: "Kemi Port Logistics", lat: 65.7230, lon: 24.5550, tier: 2, cap: 3200, workers: 65, lead: 22 },
       { name: "Simonkylä Assemblies", lat: 65.6640, lon: 25.0480, tier: 3, cap: 1100, workers: 22, lead: 38 },
 
-      // --- خوشه‌ی کالاایوکی و کوکولا (Kalajoki/Kokkola) ---
+      // Kalajoki/Kokkola
       { name: "Kalajoki Welders", lat: 64.2600, lon: 23.9500, tier: 2, cap: 3500, workers: 60, lead: 22 },
       { name: "Kokkola Eco-Tech", lat: 63.8380, lon: 23.1300, tier: 1, cap: 4800, workers: 100, lead: 17 },
       { name: "Kannus Timbers", lat: 63.9020, lon: 23.9150, tier: 3, cap: 1400, workers: 28, lead: 30 },
@@ -102,11 +120,10 @@
       { name: "Lohtaja Components", lat: 64.0250, lon: 23.5040, tier: 2, cap: 1800, workers: 32, lead: 27 }
     ];
 
-    // Colors mapping for Readiness Tiers
     const tierColors = {
-      1: '#2ecc71', // Green (Tier 1: Ready)
-      2: '#f39c12', // Yellow/Orange (Tier 2: Needs intervention)
-      3: '#e74c3c'  // Red (Tier 3: Not ready)
+      1: '#2ecc71', // Tier 1
+      2: '#f39c12', // Tier 2
+      3: '#e74c3c'  // Tier 3
     };
 
     const geojsonFeatures = [];
@@ -118,25 +135,22 @@
         radius: 9, fillColor: color, color: '#2c3e50', weight: 2, opacity: 1, fillOpacity: 0.9
       }).addTo(map);
       
-      // Popup info
       marker.bindPopup(`<b>${sme.name}</b><hr style="margin:5px 0;"><b>Readiness Tier:</b> ${sme.tier}<br><b>Capacity:</b> ${sme.cap} units<br><b>Workforce:</b> ${sme.workers}<br><b>Lead Time:</b> ${sme.lead} days`);
-      
-      // Convert point for Turf.js spatial analysis
       geojsonFeatures.push(turf.point([sme.lon, sme.lat], sme));
     });
 
     const smePoints = turf.featureCollection(geojsonFeatures);
 
-    // 4. Drawing Controls (Leaflet Draw)
+    // 4. Drawing Controls (Only Circle enabled)
     const drawnItems = new L.FeatureGroup();
     map.addLayer(drawnItems);
     
     const drawControl = new L.Control.Draw({
       draw: {
         polyline: false, marker: false, circlemarker: false,
-        polygon: { shapeOptions: { color: '#3498db' } },
-        rectangle: { shapeOptions: { color: '#3498db' } },
-        circle: { shapeOptions: { color: '#3498db' } }
+        polygon: false,    // غیرفعال شد
+        rectangle: false,  // غیرفعال شد
+        circle: { shapeOptions: { color: '#3498db', weight: 3 } }
       },
       edit: { featureGroup: drawnItems }
     });
@@ -145,20 +159,15 @@
     // 5. Spatial Aggregation Logic
     function aggregateData(layer) {
       let selectedPoints = [];
-      let geoJSON = layer.toGeoJSON();
       
+      // Since only circle is active, we just handle the circle logic
       if (layer instanceof L.Circle) {
-        // Handle Circle spatial join
         const center = turf.point([layer.getLatLng().lng, layer.getLatLng().lat]);
         const radiusKm = layer.getRadius() / 1000;
         turf.featureEach(smePoints, function (currentFeature) {
           const distance = turf.distance(center, currentFeature, {units: 'kilometers'});
           if (distance <= radiusKm) selectedPoints.push(currentFeature.properties);
         });
-      } else {
-        // Handle Polygon/Rectangle spatial join
-        const ptsWithin = turf.pointsWithinPolygon(smePoints, geoJSON);
-        ptsWithin.features.forEach(f => selectedPoints.push(f.properties));
       }
 
       // 6. Update Dashboard
@@ -189,7 +198,7 @@
 
     // 7. Map Events
     map.on(L.Draw.Event.CREATED, function (e) {
-      drawnItems.clearLayers(); // Keep only one shape on map for simplicity
+      drawnItems.clearLayers(); 
       const layer = e.layer;
       drawnItems.addLayer(layer);
       aggregateData(layer);
@@ -203,11 +212,11 @@
       resetDashboard();
     });
 
-    // 8. Map Legend (Readiness Tiers)
+    // 8. Map Legend (Removed PROMETHEE II)
     const legend = L.control({position: 'bottomright'});
     legend.onAdd = function (map) {
       const div = L.DomUtil.create('div', 'legend');
-      div.innerHTML += '<b>Readiness Score (PROMETHEE II)</b><br>';
+      div.innerHTML += '<b>Readiness Score</b><br>';
       div.innerHTML += '<i style="background: #2ecc71"></i> Tier 1 (Highly Capable)<br>';
       div.innerHTML += '<i style="background: #f39c12"></i> Tier 2 (Needs Intervention)<br>';
       div.innerHTML += '<i style="background: #e74c3c"></i> Tier 3 (Structural Barriers)<br>';
