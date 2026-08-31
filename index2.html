@@ -36,7 +36,7 @@
 
   <div id="sidebar">
     <h2>Dynamic Supply Allocation</h2>
-    <p class="desc">Drag the Mega-Project marker to a location. Set the required volume, and the algorithm will optimally allocate the closest Tier 1 & 2 SMEs to fulfill the demand.</p>
+    <p class="desc">Drag the Mega-Project marker to a location. Set the required volume, and the algorithm will optimally allocate the closest regional SMEs to fulfill the demand.</p>
     
     <!-- منوی کشویی انتخاب خدمت -->
     <div class="form-group">
@@ -81,7 +81,7 @@
       maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // SMEs Data (شامل Tier 1, 2 و 3 با پراکندگی بیشتر در منطقه)
+    // SMEs Data
     const smes = [
       { name: "Oulu Fab Oy", lat: 65.0121, lon: 25.4651, tier: 1, cap: 5000 },
       { name: "Pohjoinen Steel", lat: 65.0500, lon: 25.4000, tier: 2, cap: 2500 },
@@ -108,17 +108,14 @@
       { name: "Kalajoki Marine", lat: 64.2700, lon: 23.9400, tier: 2, cap: 2600 }
     ];
 
-    // رنگ‌بندی بر اساس تایرها (شامل قرمز برای Tier 3)
     const tierColors = { 1: '#2ecc71', 2: '#f39c12', 3: '#e74c3c' };
     
-    // اضافه کردن شرکت‌ها به نقشه
     smes.forEach(sme => {
       L.circleMarker([sme.lat, sme.lon], {
         radius: 8, fillColor: tierColors[sme.tier], color: '#2c3e50', weight: 1.5, opacity: 1, fillOpacity: 0.9
       }).addTo(map).bindPopup(`<b>${sme.name}</b><br>Tier: ${sme.tier}<br>Capacity: ${sme.cap}`);
     });
 
-    // طراحی متمایز برای مگاپروژه (آیکون صنعتی شیک با رنگ تیره و حاشیه متمایز)
     const projectIcon = L.divIcon({
       className: 'custom-div-icon',
       html: "<div style='background-color:#2c3e50;width:24px;height:24px;border-radius:50%;border:3px solid #e74c3c;box-shadow:0 0 12px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;'><div style='width:8px;height:8px;background-color:#e74c3c;border-radius:50%;'></div></div>",
@@ -140,8 +137,8 @@
       const projPos = megaProjectMarker.getLatLng();
       const projPoint = turf.point([projPos.lng, projPos.lat]);
 
-      // فیلتر کردن و محاسبه فاصله برای Tier 1 و Tier 2 (چون Tier 3 موانع ساختاری دارد و انتخاب نمی‌شود)
-      let availableSMEs = smes.filter(sme => sme.tier !== 3).map(sme => {
+      // محاسبه فاصله برای همه Tier ها (شامل Tier 3)
+      let availableSMEs = smes.map(sme => {
         const smePoint = turf.point([sme.lon, sme.lat]);
         const distance = turf.distance(projPoint, smePoint, {units: 'kilometers'});
         return { ...sme, distance };
@@ -170,7 +167,6 @@
       document.getElementById('max-distance').innerText = maxDist.toFixed(1);
     }
 
-    // اضافه کردن راهنمای رنگ‌بندی (Legend) به گوشه نقشه
     const legend = L.control({position: 'bottomright'});
     legend.onAdd = function (map) {
       const div = L.DomUtil.create('div', 'legend');
